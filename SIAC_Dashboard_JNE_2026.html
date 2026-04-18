@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIAC — Sistema Integral de Actas Observadas · JNE 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg0:#0a0d14;--bg1:#111520;--bg2:#181d2e;--bg3:#1e2438;--bg4:#252c42;
+    --border:#2a3352;--border2:#3a4668;
+    --red:#e63946;--red2:#c1121f;--red-dim:#e6394620;
+    --amber:#f4a261;--amber-dim:#f4a26120;
+    --green:#2ec4b6;--green-dim:#2ec4b620;
+    --blue:#4361ee;--blue-dim:#4361ee20;
+    --purple:#7b2d8b;
+    --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+    --jne-red:#c1121f;--jne-gold:#f4a261;
+    --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--bg0);color:var(--text);min-height:100vh;display:flex;overflow:hidden;}
+  /* SIDEBAR */
+  #sidebar{width:220px;min-width:220px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+  .sb-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);}
+  .sb-logo .logo-title{font-size:13px;font-weight:800;letter-spacing:0.12em;color:var(--jne-red);text-transform:uppercase;}
+  .sb-logo .logo-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+  .sb-badge{display:inline-block;background:var(--jne-red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;margin-top:6px;letter-spacing:0.08em;}
+  .sb-section{font-size:9px;font-weight:700;letter-spacing:0.15em;color:var(--text3);text-transform:uppercase;padding:16px 16px 6px;}
+  .sb-nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all 0.15s;border-left:3px solid transparent;font-size:13px;color:var(--text2);}
+  .sb-nav-item:hover{background:var(--bg2);color:var(--text);}
+  .sb-nav-item.active{background:var(--bg2);border-left-color:var(--jne-red);color:var(--text);}
+  .sb-nav-item .ico{width:16px;text-align:center;font-size:14px;}
+  .sb-nav-item .badge-count{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
+  .sb-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);}
+  .sb-sync-btn{width:100%;background:var(--jne-red);color:#fff;border:none;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;}
+  .sb-sync-btn:hover{background:#a0101c;}
+  .sb-sync-btn.loading{background:var(--bg4);color:var(--text2);cursor:not-allowed;}
+  .sb-last-sync{font-size:10px;color:var(--text3);text-align:center;margin-top:6px;}
+  /* MAIN */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+  .topbar-title{font-size:16px;font-weight:700;}
+  .topbar-sub{font-size:12px;color:var(--text3);}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px;}
+  .tag-red{background:var(--red-dim);color:var(--red);}
+  .tag-green{background:var(--green-dim);color:var(--green);}
+  .tag-amber{background:var(--amber-dim);color:var(--amber);}
+  .tag-blue{background:var(--blue-dim);color:var(--blue);}
+  .content{flex:1;overflow-y:auto;padding:24px;}
+  /* PAGES */
+  .page{display:none;}
+  .page.active{display:block;}
+  /* KPI CARDS */
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+  .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi-card.red::before{background:var(--red);}
+  .kpi-card.amber::before{background:var(--amber);}
+  .kpi-card.green::before{background:var(--green);}
+  .kpi-card.blue::before{background:var(--blue);}
+  .kpi-card.purple::before{background:var(--purple);}
+  .kpi-label{font-size:11px;color:var(--text3);font-weight:500;margin-bottom:6px;}
+  .kpi-value{font-size:26px;font-weight:800;font-family:var(--mono);}
+  .kpi-value.red{color:var(--red);}
+  .kpi-value.amber{color:var(--amber);}
+  .kpi-value.green{color:var(--green);}
+  .kpi-value.blue{color:var(--blue);}
+  .kpi-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+  .kpi-delta{font-size:11px;font-weight:600;margin-top:4px;}
+  .kpi-delta.up{color:var(--green);}
+  .kpi-delta.down{color:var(--red);}
+  /* CHARTS GRID */
+  .charts-grid{display:grid;grid-template-columns:340px 1fr;gap:16px;margin-bottom:24px;}
+  .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;}
+  .chart-title{font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .chart-title .dot{width:8px;height:8px;border-radius:50%;background:var(--red);}
+  /* SECTION HEADER */
+  .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .sec-title{font-size:14px;font-weight:700;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;}
+  .btn-primary{background:var(--jne-red);color:#fff;}
+  .btn-primary:hover{background:#a0101c;}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--bg3);color:var(--text);}
+  .btn-sm{padding:5px 10px;font-size:11px;}
+  /* TABLE */
+  .tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .tbl-filters{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .flt-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:12px;outline:none;font-family:var(--font);}
+  .flt-input:focus{border-color:var(--blue);}
+  .flt-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:12px;outline:none;cursor:pointer;font-family:var(--font);}
+  table{width:100%;border-collapse:collapse;}
+  thead th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tbody tr:hover{background:var(--bg3);}
+  tbody tr:last-child td{border-bottom:none;}
+  .exp-code{font-family:var(--mono);font-size:11px;color:var(--green);font-weight:500;}
+  .estado-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;}
+  .estado-PRONUNCIAMIENTO{background:var(--green-dim);color:var(--green);}
+  .estado-PENDIENTE{background:var(--amber-dim);color:var(--amber);}
+  .estado-RECUENTO{background:var(--blue-dim);color:var(--blue);}
+  .estado-SIN_PROCESAR{background:var(--red-dim);color:var(--red);}
+  .doc-links{display:flex;gap:4px;flex-wrap:wrap;}
+  .doc-link{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;text-decoration:none;transition:all 0.12s;white-space:nowrap;}
+  .doc-link.ploma{background:#1e3a5f30;color:#60a5fa;border:1px solid #1e3a5f60;}
+  .doc-link.ploma:hover{background:#1e3a5f60;}
+  .doc-link.celeste{background:#0e4f3630;color:#34d399;border:1px solid #0e4f3660;}
+  .doc-link.celeste:hover{background:#0e4f3660;}
+  .doc-link.pdf{background:#3f1f4030;color:#c084fc;border:1px solid #3f1f4060;}
+  .doc-link.pdf:hover{background:#3f1f4060;}
+  .doc-link.ai{background:#7c2d1230;color:#fb923c;border:1px solid #7c2d1260;cursor:pointer;}
+  .doc-link.ai:hover{background:#7c2d1260;}
+  /* PAGINATION */
+  .pag-bar{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);}
+  .pag-info{font-size:11px;color:var(--text3);}
+  .pag-btns{display:flex;gap:4px;}
+  .pag-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;}
+  .pag-btn:hover{background:var(--bg4);}
+  .pag-btn.active{background:var(--jne-red);border-color:var(--jne-red);color:#fff;}
+  /* LOG */
+  .log-timeline{display:flex;flex-direction:column;gap:0;}
+  .log-entry{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);}
+  .log-entry:last-child{border-bottom:none;}
+  .log-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:0;width:12px;}
+  .log-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+  .log-dot.green{background:var(--green);}
+  .log-dot.amber{background:var(--amber);}
+  .log-dot.red{background:var(--red);}
+  .log-dot.blue{background:var(--blue);}
+  .log-line{width:2px;flex:1;background:var(--border);margin-top:4px;}
+  .log-body{flex:1;}
+  .log-ts{font-size:10px;color:var(--text3);font-family:var(--mono);}
+  .log-title{font-size:13px;font-weight:600;margin:2px 0;}
+  .log-detail{font-size:12px;color:var(--text2);}
+  .log-diff{margin-top:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;}
+  .log-diff-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
+  .log-diff-item .ldi-label{font-size:10px;color:var(--text3);}
+  .log-diff-item .ldi-val{font-size:13px;font-weight:700;margin-top:2px;}
+  .ldi-val.up{color:var(--green);}
+  .ldi-val.down{color:var(--red);}
+  /* IA PANEL */
+  .ia-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .ia-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;}
+  .ia-result{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;}
+  .ia-result-field{margin-bottom:10px;}
+  .ia-result-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:3px;}
+  .ia-result-value{font-size:13px;}
+  .ia-result-value.tag-chip{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+  .chip-grave{background:#e6394620;color:var(--red);}
+  .chip-moderada{background:#f4a26120;color:var(--amber);}
+  .chip-leve{background:#2ec4b620;color:var(--green);}
+  .ia-img-preview{width:100%;height:200px;object-fit:contain;background:var(--bg0);border-radius:6px;border:1px solid var(--border);}
+  /* COMPARE */
+  .cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  /* CONFIG */
+  .cfg-section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+  .cfg-title{font-size:13px;font-weight:700;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .cfg-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+  .cfg-row:last-child{border-bottom:none;}
+  .cfg-label{font-size:13px;font-weight:500;}
+  .cfg-desc{font-size:11px;color:var(--text3);margin-top:2px;}
+  .cfg-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-size:12px;outline:none;font-family:var(--mono);min-width:280px;}
+  .cfg-input:focus{border-color:var(--blue);}
+  /* LOADING */
+  #loading-overlay{position:fixed;inset:0;background:#0a0d14ee;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+  .loading-spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--jne-red);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-size:13px;color:var(--text2);}
+  .loading-log{font-family:var(--mono);font-size:11px;color:var(--text3);max-width:400px;text-align:center;}
+  /* MODAL */
+  .modal-bg{display:none;position:fixed;inset:0;background:#00000080;z-index:1000;align-items:center;justify-content:center;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:600px;max-width:90vw;max-height:90vh;overflow-y:auto;}
+  .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .modal-title{font-size:15px;font-weight:700;}
+  .modal-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:0 4px;}
+  .modal-close:hover{color:var(--text);}
+  /* JEE TABLE */
+  .jee-progress-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px;}
+  .jee-progress-fill{height:100%;border-radius:3px;background:var(--jne-red);}
+  /* TOAST */
+  #toast{position:fixed;bottom:20px;right:20px;z-index:9998;display:flex;flex-direction:column;gap:8px;}
+  .toast-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;display:flex;align-items:center;gap:10px;animation:slideIn 0.2s ease;box-shadow:0 4px 20px #00000040;}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+  .toast-item.success{border-color:var(--green);color:var(--green);}
+  .toast-item.error{border-color:var(--red);color:var(--red);}
+  .toast-item.info{border-color:var(--blue);color:var(--blue);}
+  /* scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--bg1);}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+  /* Responsive */
+  @media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.charts-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div style="text-align:center">
+    <div style="font-size:13px;font-weight:800;letter-spacing:0.2em;color:var(--jne-red);margin-bottom:4px;">SIAC</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:24px;">Sistema Integral de Actas Observadas</div>
+  </div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Iniciando sistema...</div>
+  <div class="loading-log" id="loading-log"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">
+    <div class="logo-title">⚖ SIAC</div>
+    <div class="logo-sub">Actas Observadas · JNE 2026</div>
+    <div class="sb-badge">ELECCIONES GENERALES</div>
+  </div>
+  <div class="sb-section">Módulos</div>
+  <div class="sb-nav-item active" onclick="nav('dashboard')"><span class="ico">📊</span>Dashboard</div>
+  <div class="sb-nav-item" onclick="nav('expedientes')"><span class="ico">📋</span>Expedientes<span class="badge-count" id="badge-exp">0</span></div>
+  <div class="sb-nav-item" onclick="nav('ia')"><span class="ico">🤖</span>Análisis IA</div>
+  <div class="sb-section">Control</div>
+  <div class="sb-nav-item" onclick="nav('log')"><span class="ico">📓</span>Log de Cambios<span class="badge-count" id="badge-log">0</span></div>
+  <div class="sb-nav-item" onclick="nav('compare')"><span class="ico">🔀</span>Comparar Cortes</div>
+  <div class="sb-section">Sistema</div>
+  <div class="sb-nav-item" onclick="nav('config')"><span class="ico">⚙️</span>Configuración</div>
+  <div class="sb-footer">
+    <button class="sb-sync-btn" id="sync-btn" onclick="syncData()">
+      <span id="sync-icon">🔄</span> Actualizar Datos
+    </button>
+    <div class="sb-last-sync" id="last-sync-label">Sin sincronizar</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-sub" id="page-sub">Vista general del procesamiento de actas observadas</div>
+    </div>
+    <div class="topbar-right">
+      <span class="tag tag-red" id="topbar-total">⬤ 0 Actas Totales</span>
+      <span class="tag tag-amber" id="topbar-sinprocesar">⬤ 0 Sin Procesar</span>
+      <span class="tag tag-green" id="topbar-pronunciadas">⬤ 0 Pronunciamientos</span>
+      <button class="btn btn-ghost btn-sm" onclick="exportExcel()">⬇ Excel</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- PAGE: DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card red">
+          <div class="kpi-label">Total Actas Observadas</div>
+          <div class="kpi-value red" id="kpi-total">0</div>
+          <div class="kpi-sub">Recibidas en el proceso</div>
+          <div class="kpi-delta" id="kpi-total-delta"></div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Actas Procesadas</div>
+          <div class="kpi-value amber" id="kpi-procesadas">0</div>
+          <div class="kpi-sub" id="kpi-procesadas-pct">0% del total</div>
+          <div class="kpi-delta" id="kpi-procesadas-delta"></div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Actas Sin Procesar</div>
+          <div class="kpi-value green" id="kpi-sinprocesar">0</div>
+          <div class="kpi-sub" id="kpi-sinprocesar-pct">0% pendiente</div>
+          <div class="kpi-delta" id="kpi-sinprocesar-delta"></div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">Pronunciamientos Generados</div>
+          <div class="kpi-value blue" id="kpi-pronunciamientos">0</div>
+          <div class="kpi-sub" id="kpi-pronunciamientos-pct">0% de procesadas</div>
+          <div class="kpi-delta" id="kpi-pron-delta"></div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Enviadas a Recuento</div>
+          <div class="kpi-value" style="color:var(--purple)" id="kpi-recuento">0</div>
+          <div class="kpi-sub">Recuento de votos</div>
+          <div class="kpi-delta" id="kpi-recuento-delta"></div>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title"><span class="dot"></span>Por Tipo de Elección</div>
+          <div style="position:relative;height:260px;"><canvas id="chart-donut"></canvas></div>
+          <div id="legend-donut" style="margin-top:14px;display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span class="dot"></span>Pronunciamientos por JEE (Top 20)</div>
+          <div style="position:relative;height:320px;overflow-y:auto;"><canvas id="chart-jee"></canvas></div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;font-weight:700;">📍 Detalle por Jurado Electoral Especial</div>
+          <span id="jee-table-updated" style="font-size:11px;color:var(--text3);"></span>
+        </div>
+        <table id="jee-summary-table">
+          <thead><tr>
+            <th>JEE</th><th>Recibidas</th><th>Procesadas</th><th>Sin Procesar</th>
+            <th>Pronunciamientos</th><th>% Avance</th><th>Recuento</th>
+          </tr></thead>
+          <tbody id="jee-summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAGE: EXPEDIENTES -->
+    <div class="page" id="page-expedientes">
+      <div class="tbl-wrap">
+        <div class="tbl-filters">
+          <input class="flt-input" id="flt-search" placeholder="🔍 Buscar expediente..." style="width:200px" oninput="renderExpTable()">
+          <select class="flt-select" id="flt-jee" onchange="renderExpTable()">
+            <option value="">Todos los JEE</option>
+          </select>
+          <select class="flt-select" id="flt-estado" onchange="renderExpTable()">
+            <option value="">Todos los estados</option>
+            <option value="EN PRONUNCIAMIENTO">Con Pronunciamiento</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="RECUENTO">Recuento</option>
+            <option value="SIN_PROCESAR">Sin Procesar</option>
+          </select>
+          <select class="flt-select" id="flt-tipo-eleccion" onchange="renderExpTable()">
+            <option value="">Todos los tipos</option>
+            <option value="PRESIDENCIAL">Presidencial</option>
+            <option value="SENADORES">Senadores</option>
+            <option value="DIPUTADOS">Diputados</option>
+            <option value="PARLAMENTO ANDINO">Parlamento Andino</option>
+          </select>
+          <select class="flt-select" id="flt-dept" onchange="renderExpTable()">
+            <option value="">Todos los dptos.</option>
+          </select>
+          <span id="exp-count-label" style="font-size:11px;color:var(--text3);margin-left:auto;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="exp-table">
+            <thead><tr>
+              <th>#</th><th>Expediente</th><th>JEE</th><th>Dpto / Provincia / Distrito</th>
+              <th>Tipo Elección</th><th>Estado</th><th>Registro</th><th>Documentos</th><th>IA</th>
+            </tr></thead>
+            <tbody id="exp-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pag-bar">
+          <span class="pag-info" id="pag-info"></span>
+          <div class="pag-btns" id="pag-btns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: IA -->
+    <div class="page" id="page-ia">
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+        <button class="btn btn-primary" onclick="showIAQueue()">📋 Ver Cola de Análisis</button>
+        <button class="btn btn-ghost" onclick="processIAQueue()">▶ Procesar Cola</button>
+        <span id="ia-queue-status" style="font-size:12px;color:var(--text2);"></span>
+      </div>
+      <div class="ia-grid" id="ia-results-grid"></div>
+    </div>
+
+    <!-- PAGE: LOG -->
+    <div class="page" id="page-log">
+      <div class="sec-hdr" style="margin-bottom:16px;">
+        <div class="sec-title">📓 Diario de Cambios — Log Incremental</div>
+        <button class="btn btn-ghost btn-sm" onclick="exportLog()">⬇ Exportar Log</button>
+      </div>
+      <div class="tbl-wrap" style="padding:20px;">
+        <div class="log-timeline" id="log-timeline">
+          <div style="text-align:center;color:var(--text3);padding:40px;">Sin registros. Ejecuta una sincronización para comenzar.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: COMPARE -->
+    <div class="page" id="page-compare">
+      <div class="sec-hdr" style="margin-bottom:16px;">
+        <div class="sec-title">🔀 Comparar Cortes</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;display:flex;gap:16px;align-items:flex-end;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">CORTE BASE</div>
+          <select class="flt-select" id="cmp-snap-a" style="width:240px;"></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">CORTE COMPARAR</div>
+          <select class="flt-select" id="cmp-snap-b" style="width:240px;"></select>
+        </div>
+        <button class="btn btn-primary" onclick="runCompare()">🔍 Comparar</button>
+      </div>
+      <div id="compare-result"></div>
+    </div>
+
+    <!-- PAGE: CONFIG -->
+    <div class="page" id="page-config">
+      <div class="cfg-section">
+        <div class="cfg-title">🤖 Configuración de Análisis IA (Claude)</div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">API Key de Anthropic</div>
+            <div class="cfg-desc">Necesaria para el análisis automático de imágenes de actas</div>
+          </div>
+          <input type="password" class="cfg-input" id="cfg-apikey" placeholder="sk-ant-api03-..." oninput="saveConfig()">
+        </div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Modelo IA</div>
+            <div class="cfg-desc">Modelo de Claude para análisis de imágenes</div>
+          </div>
+          <select class="flt-select cfg-input" id="cfg-model" onchange="saveConfig()">
+            <option value="claude-sonnet-4-20250514">claude-sonnet-4-20250514 (Recomendado)</option>
+            <option value="claude-opus-4-5">claude-opus-4-5 (Máxima precisión)</option>
+          </select>
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">🔄 Sincronización</div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Intervalo auto-sync</div>
+            <div class="cfg-desc">Frecuencia de actualización automática (0 = desactivado)</div>
+          </div>
+          <select class="flt-select cfg-input" id="cfg-interval" onchange="saveConfig()">
+            <option value="0">Manual</option>
+            <option value="300">Cada 5 minutos</option>
+            <option value="600">Cada 10 minutos</option>
+            <option value="1800">Cada 30 minutos</option>
+            <option value="3600">Cada hora</option>
+          </select>
+        </div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Página de carga por sync</div>
+            <div class="cfg-desc">Expedientes por página (max 500)</div>
+          </div>
+          <input type="number" class="cfg-input" id="cfg-pagesize" value="200" min="10" max="500" style="min-width:100px;" oninput="saveConfig()">
+        </div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">JEE a monitorear</div>
+            <div class="cfg-desc">Deja en blanco para todos. Separar por coma: HUANCAYO, CUSCO</div>
+          </div>
+          <input class="cfg-input" id="cfg-jees-filter" placeholder="Todos" oninput="saveConfig()">
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">🗄️ Base de Datos Local</div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Expedientes almacenados</div>
+            <div class="cfg-desc">Registros en IndexedDB local</div>
+          </div>
+          <span id="cfg-db-count" style="font-family:var(--mono);color:var(--green);">0</span>
+        </div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Análisis IA realizados</div>
+          </div>
+          <span id="cfg-ia-count" style="font-family:var(--mono);color:var(--blue);">0</span>
+        </div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Snapshots guardados</div>
+          </div>
+          <span id="cfg-snap-count" style="font-family:var(--mono);color:var(--amber);">0</span>
+        </div>
+        <div class="cfg-row">
+          <div>
+            <div class="cfg-label">Limpiar base de datos</div>
+            <div class="cfg-desc" style="color:var(--red);">⚠ Elimina TODOS los datos locales</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="clearDB()" style="border-color:var(--red);color:var(--red);">🗑 Limpiar DB</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODAL: IA Analysis -->
+<div class="modal-bg" id="modal-ia">
+  <div class="modal" style="min-width:800px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-ia-title">Análisis IA de Acta</div>
+      <button class="modal-close" onclick="closeModal('modal-ia')">✕</button>
+    </div>
+    <div id="modal-ia-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Detalle Expediente -->
+<div class="modal-bg" id="modal-exp">
+  <div class="modal" style="min-width:700px;">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-exp-title">Detalle del Expediente</div>
+      <button class="modal-close" onclick="closeModal('modal-exp')">✕</button>
+    </div>
+    <div id="modal-exp-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS & CONFIG
+// ═══════════════════════════════════════════════════════════════
+// JNE usa múltiples servidores (1-8) con balanceo de carga
+const API_SERVERS = [2,3,4,5,6,7,8,1].map(n => `https://apiplataformaelectoral${n}.jne.gob.pe/api/v1`);
+let API_BASE = API_SERVERS[0];
+const FILE_BASE = 'https://plataformahistorico.jne.gob.pe';
+const ID_PROCESO = 124;
+const ID_TIPO_EXP = 3;  // ACTA ELECTORAL
+const ID_MATERIA = 16;  // OBSERVADAS
+
+// Timeout helper compatible con todos los navegadores
+function fetchWithTimeout(url, opts, ms=12000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Timeout')), ms);
+    fetch(url, opts)
+      .then(r => { clearTimeout(timer); resolve(r); })
+      .catch(e => { clearTimeout(timer); reject(e); });
+  });
+}
+
+// Auto-detectar servidor activo
+async function detectActiveServer() {
+  setLoadingText('Detectando servidor API del JNE...');
+  const body = JSON.stringify({idProcesoElectoral:ID_PROCESO,idTipoExpediente:ID_TIPO_EXP,
+    idMateria:ID_MATERIA,idJuradoElectoral:0,idOrganizacionPolitica:0,
+    ubigeo:'',numeroDNI:'',asunto:'',pageIndex:1,pageSize:1});
+  const opts = { method:'POST', headers:{'Content-Type':'application/json'}, body };
+
+  for (const server of API_SERVERS) {
+    try {
+      const num = server.match(/electoral(\d+)/)?.[1] || '?';
+      setLoadingText(`Probando servidor ${num}/8...`);
+      const resp = await fetchWithTimeout(`${server}/expediente/avanzada`, opts, 12000);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && (data.data?.length > 0 || data.count >= 0)) {
+          API_BASE = server;
+          console.log('[SIAC] ✅ Servidor activo:', server);
+          setLoadingText(`✅ Conectado al servidor ${num}`);
+          return true;
+        }
+      }
+    } catch(e) {
+      console.log('[SIAC] ❌ Servidor no responde:', server, e.message);
+    }
+  }
+  throw new Error('No se pudo conectar al JNE. ¿Tienes internet? Intenta abrir en Chrome: https://plataformaelectoral.jne.gob.pe');
+}
+
+const JEE_LIST = [
+  {id:2064,name:'ABANCAY'},{id:2210,name:'ALTO AMAZONAS'},{id:2187,name:'ANDAHUAYLAS'},
+  {id:2040,name:'AREQUIPA 1'},{id:2188,name:'AREQUIPA 2'},{id:2184,name:'BAGUA'},
+  {id:2214,name:'CAJAMARCA'},{id:2073,name:'CALLAO'},{id:2193,name:'CANCHIS'},
+  {id:2189,name:'CANGALLO'},{id:2268,name:'CAYLLOMA'},{id:2208,name:'CAÑETE'},
+  {id:2060,name:'CHACHAPOYAS'},{id:2196,name:'CHANCHAMAYO'},{id:2042,name:'CHICLAYO'},
+  {id:2191,name:'CHOTA'},{id:2112,name:'CORONEL PORTILLO'},{id:2074,name:'CUSCO'},
+  {id:2194,name:'HUAMALIES'},{id:2067,name:'HUAMANGA'},{id:2076,name:'HUANCAVELICA'},
+  {id:2041,name:'HUANCAYO'},{id:2077,name:'HUANUCO'},{id:2061,name:'HUARAZ'},
+  {id:2186,name:'HUARI'},{id:2269,name:'HUAROCHIRI'},{id:2097,name:'HUAURA'},
+  {id:2080,name:'ICA'},{id:2192,name:'JAEN'},{id:2098,name:'LAMBAYEQUE'},
+  {id:2215,name:'LEONCIO PRADO'},{id:2271,name:'LIMA CENTRO 1'},{id:2272,name:'LIMA CENTRO 2'},
+  {id:2273,name:'LIMA NORTE 1'},{id:2274,name:'LIMA NORTE 2'},{id:2275,name:'LIMA NORTE 3'},
+  {id:2276,name:'LIMA OESTE 1'},{id:2277,name:'LIMA OESTE 2'},{id:2278,name:'LIMA OESTE 3'},
+  {id:2279,name:'LIMA SUR 1'},{id:2280,name:'LIMA SUR 2'},{id:2281,name:'LIMA SUR 3'},
+  {id:2081,name:'LUCANAS'},{id:2082,name:'MARISCAL NIETO'},{id:2302,name:'MARISCAL RAMON CASTILLA'},
+  {id:2100,name:'MAYNAS'},{id:2084,name:'PACASMAYO'},{id:2085,name:'PASCO'},
+  {id:2086,name:'PIURA 1'},{id:2087,name:'PIURA 2'},{id:2088,name:'SAN MARTIN'},
+  {id:2089,name:'SAN ROMAN'},{id:2090,name:'SANCHEZ CARRION'},{id:2091,name:'SANTA'},
+  {id:2092,name:'SULLANA'},{id:2093,name:'TACNA'},{id:2094,name:'TAMBOPATA'},
+  {id:2095,name:'TRUJILLO'},{id:2205,name:'UCAYALI'}
+];
+
+// ═══════════════════════════════════════════════════════════════
+// DATABASE (IndexedDB)
+// ═══════════════════════════════════════════════════════════════
+let db = null;
+const DB_NAME = 'SIAC_JNE_2026';
+const DB_VERSION = 3;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('expedientes')) {
+        const s = d.createObjectStore('expedientes', {keyPath:'idExpediente'});
+        s.createIndex('codExpedienteExt','codExpedienteExt',{unique:true});
+        s.createIndex('juradoElectoral','juradoElectoral');
+        s.createIndex('estadoExped','estadoExped');
+      }
+      if(!d.objectStoreNames.contains('docs')) {
+        const ds = d.createObjectStore('docs', {keyPath:'codDocumento'});
+        ds.createIndex('idExpediente','idExpediente');
+      }
+      if(!d.objectStoreNames.contains('analyses')) {
+        d.createObjectStore('analyses', {keyPath:'idExpediente'});
+      }
+      if(!d.objectStoreNames.contains('snapshots')) {
+        d.createObjectStore('snapshots', {keyPath:'id', autoIncrement:true});
+      }
+      if(!d.objectStoreNames.contains('logs')) {
+        d.createObjectStore('logs', {keyPath:'id', autoIncrement:true});
+      }
+      if(!d.objectStoreNames.contains('config')) {
+        d.createObjectStore('config', {keyPath:'key'});
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const s=tx.objectStore(store);const r=s.get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+}
+function dbGetAll(store, indexName, indexValue) {
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readonly');
+    const s=tx.objectStore(store);
+    const r = indexName ? s.index(indexName).getAll(indexValue) : s.getAll();
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  });
+}
+function dbPut(store, obj) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const s=tx.objectStore(store);const r=s.put(obj);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+}
+function dbPutBulk(store, items) {
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const s=tx.objectStore(store);
+    let done=0;
+    if(items.length===0){res();return;}
+    items.forEach(item=>{
+      const r=s.put(item);
+      r.onsuccess=()=>{done++;if(done===items.length)res();};
+      r.onerror=()=>rej(r.error);
+    });
+  });
+}
+function dbCount(store) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const r=tx.objectStore(store).count();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+}
+function dbClear(store) {
+  return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const r=tx.objectStore(store).clear();r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JNE API LAYER
+// ═══════════════════════════════════════════════════════════════
+async function apiFetch(url, opts={}) {
+  const resp = await fetch(url, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${url}`);
+  return resp.json();
+}
+
+async function searchExpedientes(params) {
+  return apiFetch(`${API_BASE}/expediente/avanzada`, {
+    method: 'POST',
+    body: JSON.stringify({
+      idProcesoElectoral: ID_PROCESO,
+      idTipoExpediente: ID_TIPO_EXP,
+      idMateria: ID_MATERIA,
+      idOrganizacionPolitica: 0,
+      ubigeo: '', numeroDNI: '', asunto: '',
+      ...params
+    })
+  });
+}
+
+async function getExpedienteDetail(codExpedienteExt) {
+  return apiFetch(`${API_BASE}/expediente/detalle?CodExpedienteExt=${encodeURIComponent(codExpedienteExt)}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYNC ENGINE
+// ═══════════════════════════════════════════════════════════════
+let syncInterval = null;
+let isSyncing = false;
+
+async function syncData(isAuto=false) {
+  if (isSyncing) return;
+  isSyncing = true;
+  const btn = document.getElementById('sync-btn');
+  btn.classList.add('loading');
+  btn.querySelector('#sync-icon').textContent = '⏳';
+  document.getElementById('loading-overlay').style.display = 'flex';
+  
+  try {
+    // Auto-detect active JNE server
+    await detectActiveServer();
+
+    // Get previous snapshot for diff
+    const prevSnap = await getLatestSnapshot();
+    const prevMap = {};
+    if (prevSnap) prevSnap.data.forEach(e => prevMap[e.idExpediente] = e);
+
+    const cfg = await getConfig();
+    const pageSize = parseInt(cfg.pageSize || 200);
+    const jeeFilter = cfg.jeesFilter ? cfg.jeesFilter.split(',').map(j=>j.trim().toUpperCase()) : [];
+
+    setLoadingText('Consultando API del JNE...');
+    
+    // First call to get total
+    const firstPage = await searchExpedientes({ idJuradoElectoral: 0, pageIndex: 1, pageSize });
+    const total = firstPage.data[0]?.totalRows || 0;
+    const totalPages = Math.ceil(total / pageSize);
+
+    setLoadingText(`Descargando ${total} expedientes en ${totalPages} páginas...`);
+
+    let allExps = [...firstPage.data];
+    
+    // Paginate all
+    for (let page = 2; page <= totalPages; page++) {
+      setLoadingText(`Página ${page} / ${totalPages} (${allExps.length} expedientes)`);
+      const resp = await searchExpedientes({ idJuradoElectoral: 0, pageIndex: page, pageSize });
+      allExps = allExps.concat(resp.data || []);
+      await sleep(50);
+    }
+
+    // Filter by JEE if configured
+    if (jeeFilter.length > 0) {
+      allExps = allExps.filter(e => jeeFilter.includes(e.juradoElectoral?.toUpperCase()));
+    }
+
+    // Enrich each with normalized estado
+    allExps = allExps.map(e => ({
+      ...e,
+      estadoNorm: normalizeEstado(e.estadoExped),
+      syncedAt: Date.now()
+    }));
+
+    // Compute diff vs previous snapshot
+    const changes = computeDiff(prevMap, allExps);
+
+    // Save to DB
+    setLoadingText(`Guardando ${allExps.length} registros en IndexedDB...`);
+    await dbPutBulk('expedientes', allExps);
+
+    // Save snapshot
+    const snapId = await saveSnapshot(allExps);
+
+    // Save log entry
+    if (prevSnap || allExps.length > 0) {
+      await addLogEntry({
+        type: changes.hasChanges ? 'update' : 'sync',
+        title: changes.hasChanges ? `Actualización — ${changes.nuevos + changes.procesados + changes.pronunciados} cambios detectados` : `Sincronización sin cambios`,
+        detail: `${allExps.length} expedientes totales. ${isAuto ? 'Auto-sync' : 'Manual'}`,
+        changes,
+        total: allExps.length,
+        snapshotId: snapId
+      });
+    }
+
+    // Update UI
+    await renderDashboard();
+    renderExpTable();
+    renderLogPage();
+    updateTopbar(allExps);
+    setBadge('badge-exp', allExps.length);
+    
+    const now = new Date().toLocaleString('es-PE');
+    document.getElementById('last-sync-label').textContent = `Ult. sync: ${now}`;
+    document.getElementById('jee-table-updated').textContent = `Actualizado: ${now}`;
+
+    if (changes.hasChanges) {
+      toast(`✅ ${changes.nuevos} nuevos · ${changes.procesados} procesados · ${changes.pronunciados} pronunciamientos`, 'success');
+    } else {
+      toast('✅ Datos actualizados. Sin cambios.', 'success');
+    }
+    
+  } catch(err) {
+    console.error('Sync error:', err);
+    let msg = err.message || 'Error desconocido';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
+      msg = '❌ No se pudo conectar al JNE. Verifica: 1) Tienes internet 2) El .bat está corriendo 3) Abriste desde http://localhost:8080 (no desde file://)';
+    }
+    toast(msg, 'error', 10000);
+  }
+  
+  isSyncing = false;
+  btn.classList.remove('loading');
+  btn.querySelector('#sync-icon').textContent = '🔄';
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+function computeDiff(prevMap, newExps) {
+  let nuevos=0, procesados=0, pronunciados=0, sinProcesar=0;
+  const details = [];
+  
+  newExps.forEach(e => {
+    const prev = prevMap[e.idExpediente];
+    if (!prev) {
+      nuevos++;
+      details.push({type:'nuevo', exp: e.codExpedienteExt, jee: e.juradoElectoral});
+    } else {
+      // Check estado change
+      if (prev.estadoNorm !== e.estadoNorm) {
+        if (e.estadoNorm === 'EN PRONUNCIAMIENTO') pronunciados++;
+        else if (e.estadoNorm === 'PENDIENTE' && prev.estadoNorm === 'SIN_PROCESAR') procesados++;
+        details.push({type:'estado', exp: e.codExpedienteExt, jee: e.juradoElectoral, from: prev.estadoNorm, to: e.estadoNorm});
+      }
+    }
+    if (e.estadoNorm === 'SIN_PROCESAR') sinProcesar++;
+  });
+  
+  // Count pronunciamientos
+  const totalPron = newExps.filter(e=>e.estadoNorm==='EN PRONUNCIAMIENTO').length;
+  const prevPron = Object.values(prevMap).filter(e=>e.estadoNorm==='EN PRONUNCIAMIENTO').length;
+  
+  return {
+    hasChanges: nuevos > 0 || details.length > 0,
+    nuevos, procesados, pronunciados: totalPron - prevPron,
+    sinProcesar, totalPron, prevPron,
+    totalNew: newExps.length,
+    totalPrev: Object.keys(prevMap).length,
+    details: details.slice(0,50)
+  };
+}
+
+function normalizeEstado(estado) {
+  if (!estado) return 'SIN_PROCESAR';
+  const s = estado.toUpperCase();
+  if (s.includes('PRONUNCIAMIENTO')) return 'EN PRONUNCIAMIENTO';
+  if (s.includes('RECUENTO')) return 'RECUENTO';
+  if (s.includes('RESUELTO') || s.includes('PROCESADO')) return 'PENDIENTE';
+  return 'PENDIENTE';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SNAPSHOTS & LOG
+// ═══════════════════════════════════════════════════════════════
+async function saveSnapshot(data) {
+  const snap = {
+    timestamp: Date.now(),
+    label: new Date().toLocaleString('es-PE'),
+    total: data.length,
+    procesadas: data.filter(e=>e.estadoNorm!=='SIN_PROCESAR').length,
+    pronunciadas: data.filter(e=>e.estadoNorm==='EN PRONUNCIAMIENTO').length,
+    recuento: data.filter(e=>e.estadoNorm==='RECUENTO').length,
+    byJEE: computeByJEE(data),
+    data: data.map(e=>({idExpediente:e.idExpediente, codExpedienteExt:e.codExpedienteExt, estadoNorm:e.estadoNorm, juradoElectoral:e.juradoElectoral, tipoEleccion:e.tipoEleccion}))
+  };
+  return dbPut('snapshots', snap);
+}
+
+async function getLatestSnapshot() {
+  const all = await dbGetAll('snapshots');
+  if (!all.length) return null;
+  return all.sort((a,b)=>b.timestamp-a.timestamp)[0];
+}
+
+function computeByJEE(exps) {
+  const m = {};
+  exps.forEach(e => {
+    const jee = e.juradoElectoral || 'SIN JEE';
+    if (!m[jee]) m[jee] = {jee, total:0, procesadas:0, pronunciadas:0, recuento:0};
+    m[jee].total++;
+    if (e.estadoNorm !== 'SIN_PROCESAR') m[jee].procesadas++;
+    if (e.estadoNorm === 'EN PRONUNCIAMIENTO') m[jee].pronunciadas++;
+    if (e.estadoNorm === 'RECUENTO') m[jee].recuento++;
+  });
+  return Object.values(m).sort((a,b)=>b.total-a.total);
+}
+
+async function addLogEntry(entry) {
+  const allLogs = await dbGetAll('logs');
+  await dbPut('logs', { ...entry, id: Date.now() });
+  setBadge('badge-log', allLogs.length + 1);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+let chartDonut = null, chartJEE = null;
+
+async function renderDashboard() {
+  const exps = await dbGetAll('expedientes');
+  if (!exps.length) return;
+
+  const total = exps.length;
+  const sinProcesar = exps.filter(e=>e.estadoNorm==='SIN_PROCESAR').length;
+  const procesadas = total - sinProcesar;
+  const pronunciadas = exps.filter(e=>e.estadoNorm==='EN PRONUNCIAMIENTO').length;
+  const recuento = exps.filter(e=>e.estadoNorm==='RECUENTO').length;
+
+  // Get previous snapshot for deltas
+  const snaps = (await dbGetAll('snapshots')).sort((a,b)=>b.timestamp-a.timestamp);
+  const prev = snaps.length > 1 ? snaps[1] : null;
+
+  setKPI('kpi-total', total.toLocaleString(), 'red');
+  setKPI('kpi-procesadas', procesadas.toLocaleString(), 'amber');
+  setKPI('kpi-sinprocesar', sinProcesar.toLocaleString(), 'green');
+  setKPI('kpi-pronunciamientos', pronunciadas.toLocaleString(), 'blue');
+  setKPI('kpi-recuento', recuento.toLocaleString(), '');
+
+  const pctProc = ((procesadas/total)*100).toFixed(1);
+  const pctSin = ((sinProcesar/total)*100).toFixed(1);
+  const pctPron = procesadas > 0 ? ((pronunciadas/procesadas)*100).toFixed(1) : 0;
+  document.getElementById('kpi-procesadas-pct').textContent = `${pctProc}% del total`;
+  document.getElementById('kpi-sinprocesar-pct').textContent = `${pctSin}% pendiente`;
+  document.getElementById('kpi-pronunciamientos-pct').textContent = `${pctPron}% de procesadas`;
+
+  // Deltas
+  if (prev) {
+    setDelta('kpi-total-delta', total - prev.total);
+    setDelta('kpi-procesadas-delta', procesadas - prev.procesadas);
+    setDelta('kpi-sinprocesar-delta', sinProcesar - (prev.total - prev.procesadas), true);
+    setDelta('kpi-pron-delta', pronunciadas - prev.pronunciadas);
+    setDelta('kpi-recuento-delta', recuento - prev.recuento);
+  }
+
+  // Donut chart by tipo eleccion
+  const tipos = {};
+  exps.forEach(e => {
+    const t = e.tipoEleccion || 'OTROS';
+    tipos[t] = (tipos[t]||0) + 1;
+  });
+  renderDonutChart(tipos, total);
+
+  // JEE bar chart
+  const jeeData = computeByJEE(exps);
+  renderJEEChart(jeeData);
+
+  // JEE summary table
+  renderJEESummaryTable(jeeData);
+
+  updateTopbar(exps);
+}
+
+function setKPI(id, val, color) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = val; el.className = `kpi-value ${color}`; }
+}
+function setDelta(id, delta, inverse=false) {
+  const el = document.getElementById(id);
+  if (!el || delta === 0) return;
+  const isGood = inverse ? delta < 0 : delta > 0;
+  el.className = `kpi-delta ${isGood ? 'up' : 'down'}`;
+  el.textContent = `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)} vs corte anterior`;
+}
+
+function renderDonutChart(tipos, total) {
+  const COLORS = ['#e63946','#f4a261','#2ec4b6','#4361ee','#7b2d8b','#e9c46a','#06d6a0'];
+  const labels = Object.keys(tipos);
+  const vals = Object.values(tipos);
+
+  const ctx = document.getElementById('chart-donut').getContext('2d');
+  if (chartDonut) chartDonut.destroy();
+  chartDonut = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets:[{data:vals, backgroundColor:COLORS, borderColor:'#111520', borderWidth:2}]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: {display:false},
+        tooltip: {callbacks:{label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()} (${((ctx.raw/total)*100).toFixed(1)}%)`}}
+      },
+      cutout: '65%'
+    }
+  });
+
+  const legend = document.getElementById('legend-donut');
+  legend.innerHTML = labels.map((l,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};display:inline-block;"></span>${l}</span>
+      <span style="font-family:var(--mono);color:var(--text2);">${((vals[i]/total)*100).toFixed(1)}% · ${vals[i].toLocaleString()}</span>
+    </div>`).join('');
+}
+
+function renderJEEChart(jeeData) {
+  const top20 = jeeData.filter(j=>j.pronunciadas>0).sort((a,b)=>b.pronunciadas/b.total - a.pronunciadas/a.total).slice(0,25);
+  const ctx = document.getElementById('chart-jee').getContext('2d');
+  if (chartJEE) chartJEE.destroy();
+  
+  const canvas = document.getElementById('chart-jee');
+  canvas.style.height = (Math.max(300, top20.length * 24)) + 'px';
+  
+  chartJEE = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top20.map(j=>j.jee),
+      datasets:[{
+        label:'% Pronunciamientos',
+        data: top20.map(j=>((j.pronunciadas/j.total)*100).toFixed(1)),
+        backgroundColor: top20.map(j=> ((j.pronunciadas/j.total)*100) > 30 ? '#e6394690' : '#4361ee60'),
+        borderColor: top20.map(j=> ((j.pronunciadas/j.total)*100) > 30 ? '#e63946' : '#4361ee'),
+        borderWidth: 1, borderRadius: 3
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive:true, maintainAspectRatio:false,
+      plugins: {legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.raw}%`}}},
+      scales: {
+        x: {grid:{color:'#2a3352'},ticks:{color:'#94a3b8',font:{size:10}},max:100},
+        y: {grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}}
+      }
+    }
+  });
+}
+
+function renderJEESummaryTable(jeeData) {
+  const tbody = document.getElementById('jee-summary-tbody');
+  tbody.innerHTML = jeeData.map(j => {
+    const pct = j.total > 0 ? ((j.pronunciadas/j.total)*100).toFixed(1) : 0;
+    const procPct = j.total > 0 ? ((j.procesadas/j.total)*100).toFixed(0) : 0;
+    return `<tr>
+      <td style="font-weight:600;">${j.jee}</td>
+      <td style="font-family:var(--mono);">${j.total.toLocaleString()}</td>
+      <td style="font-family:var(--mono);">${j.procesadas.toLocaleString()}
+        <div class="jee-progress-bar" style="width:80px;"><div class="jee-progress-fill" style="width:${procPct}%;background:var(--amber);"></div></div>
+      </td>
+      <td style="font-family:var(--mono);color:var(--red);">${(j.total-j.procesadas).toLocaleString()}</td>
+      <td style="font-family:var(--mono);color:var(--green);">${j.pronunciadas.toLocaleString()}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:var(--mono);font-weight:700;color:${pct>30?'var(--red)':pct>15?'var(--amber)':'var(--green)'};">${pct}%</span>
+          <div class="jee-progress-bar" style="width:80px;"><div class="jee-progress-fill" style="width:${pct}%;background:${pct>30?'var(--red)':pct>15?'var(--amber)':'var(--green)'};"></div></div>
+        </div>
+      </td>
+      <td style="font-family:var(--mono);color:var(--blue);">${j.recuento}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateTopbar(exps) {
+  const total = exps.length;
+  const sinProcesar = exps.filter(e=>e.estadoNorm==='SIN_PROCESAR').length;
+  const pronunciadas = exps.filter(e=>e.estadoNorm==='EN PRONUNCIAMIENTO').length;
+  document.getElementById('topbar-total').textContent = `⬤ ${total.toLocaleString()} Actas`;
+  document.getElementById('topbar-sinprocesar').textContent = `⬤ ${sinProcesar.toLocaleString()} Sin Procesar`;
+  document.getElementById('topbar-pronunciadas').textContent = `⬤ ${pronunciadas.toLocaleString()} Pronunciamientos`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: EXPEDIENTES TABLE
+// ═══════════════════════════════════════════════════════════════
+let expPage = 1, filteredExps = [];
+const EXP_PAGE_SIZE = 50;
+
+async function renderExpTable() {
+  const all = await dbGetAll('expedientes');
+  if (!all.length) return;
+  
+  // Populate filters once
+  const jeeSelect = document.getElementById('flt-jee');
+  if (jeeSelect.options.length <= 1) {
+    const jees = [...new Set(all.map(e=>e.juradoElectoral).filter(Boolean))].sort();
+    jees.forEach(j => { const o = document.createElement('option'); o.value=j; o.textContent=j; jeeSelect.appendChild(o); });
+  }
+  const deptSelect = document.getElementById('flt-dept');
+  if (deptSelect.options.length <= 1) {
+    const depts = [...new Set(all.map(e=>e.departamento).filter(Boolean))].sort();
+    depts.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; deptSelect.appendChild(o); });
+  }
+
+  // Apply filters
+  const search = document.getElementById('flt-search').value.toLowerCase();
+  const jee = document.getElementById('flt-jee').value;
+  const estado = document.getElementById('flt-estado').value;
+  const tipoEl = document.getElementById('flt-tipo-eleccion').value;
+  const dept = document.getElementById('flt-dept').value;
+
+  filteredExps = all.filter(e => {
+    if (search && !e.codExpedienteExt?.toLowerCase().includes(search) && !e.distrito?.toLowerCase().includes(search)) return false;
+    if (jee && e.juradoElectoral !== jee) return false;
+    if (estado && e.estadoNorm !== estado) return false;
+    if (tipoEl && !e.tipoEleccion?.includes(tipoEl)) return false;
+    if (dept && e.departamento !== dept) return false;
+    return true;
+  });
+
+  document.getElementById('exp-count-label').textContent = `${filteredExps.length.toLocaleString()} expedientes`;
+  setBadge('badge-exp', filteredExps.length);
+  renderExpPage();
+}
+
+function renderExpPage() {
+  const start = (expPage-1)*EXP_PAGE_SIZE;
+  const pageData = filteredExps.slice(start, start+EXP_PAGE_SIZE);
+  const tbody = document.getElementById('exp-tbody');
+  tbody.innerHTML = pageData.map((e, i) => {
+    const estado = e.estadoNorm || 'SIN_PROCESAR';
+    const estadoClass = estado.replace(/ /g,'_');
+    return `<tr>
+      <td style="color:var(--text3);font-family:var(--mono);">${start+i+1}</td>
+      <td><span class="exp-code" style="cursor:pointer;" onclick="showExpDetalle('${e.codExpedienteExt}')">${e.codExpedienteExt || '-'}</span></td>
+      <td style="font-size:11px;">${e.juradoElectoral||'-'}</td>
+      <td style="font-size:11px;">${[e.departamento,e.provincia,e.distrito].filter(Boolean).join(' / ')}</td>
+      <td style="font-size:11px;">${e.tipoEleccion||'-'}</td>
+      <td><span class="estado-badge estado-${estadoClass}">${estado}</span></td>
+      <td style="font-size:11px;color:var(--text3);">${e.feRegistro||'-'}</td>
+      <td>
+        <div class="doc-links">
+          <span class="doc-link ploma" onclick="openDocModal('${e.codExpedienteExt}','ploma')" title="Acta Ploma">📄P</span>
+          <span class="doc-link celeste" onclick="openDocModal('${e.codExpedienteExt}','celeste')" title="Acta Celeste">📄C</span>
+          <span class="doc-link pdf" onclick="openDocModal('${e.codExpedienteExt}','oficio')" title="Oficio ODPE">📎O</span>
+          <span class="doc-link pdf" onclick="openDocModal('${e.codExpedienteExt}','pronunciamiento')" title="Pronunciamiento">⚖P</span>
+        </div>
+      </td>
+      <td><span class="doc-link ai" onclick="analyzeActa(${e.idExpediente},'${e.codExpedienteExt}')">🤖 IA</span></td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const totalPages = Math.ceil(filteredExps.length / EXP_PAGE_SIZE);
+  const pInfo = document.getElementById('pag-info');
+  pInfo.textContent = `${start+1}–${Math.min(start+EXP_PAGE_SIZE,filteredExps.length)} de ${filteredExps.length.toLocaleString()}`;
+  const pBtns = document.getElementById('pag-btns');
+  const visPages = getVisiblePages(expPage, totalPages);
+  pBtns.innerHTML = visPages.map(p =>
+    p === '...' ? `<span class="pag-btn" style="cursor:default;">…</span>` :
+    `<button class="pag-btn ${p===expPage?'active':''}" onclick="setExpPage(${p})">${p}</button>`
+  ).join('');
+}
+
+function setExpPage(p) { expPage=p; renderExpPage(); }
+
+function getVisiblePages(cur, total) {
+  if (total <= 7) return Array.from({length:total},(_, i)=>i+1);
+  const pages = [];
+  pages.push(1);
+  if (cur > 3) pages.push('...');
+  for(let i=Math.max(2,cur-1); i<=Math.min(total-1,cur+1); i++) pages.push(i);
+  if (cur < total-2) pages.push('...');
+  pages.push(total);
+  return pages;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOCUMENT DETAIL MODAL
+// ═══════════════════════════════════════════════════════════════
+async function showExpDetalle(codExpedienteExt) {
+  const modal = document.getElementById('modal-exp');
+  document.getElementById('modal-exp-title').textContent = `Expediente ${codExpedienteExt}`;
+  document.getElementById('modal-exp-body').innerHTML = '<div style="text-align:center;padding:20px;">⏳ Cargando documentos...</div>';
+  modal.classList.add('open');
+  
+  try {
+    const detail = await getExpedienteDetail(codExpedienteExt);
+    const docs = detail?.data || detail?.actuados || detail || [];
+    const docsArr = Array.isArray(docs) ? docs : (docs.actuados || []);
+    
+    document.getElementById('modal-exp-body').innerHTML = `
+      <div style="display:grid;gap:8px;">
+        ${docsArr.length ? docsArr.map(doc => `
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--green);">${doc.tipoActuado||doc.tipoDocumento||'Documento'}</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--text3);">${doc.codDocumento||''}</div>
+              <div style="font-size:11px;color:var(--text2);">${doc.detalle||''} · ${doc.formato||''} · ${doc.peso||''}MB</div>
+            </div>
+            <a href="${FILE_BASE}${doc.rutaArchivo||''}" target="_blank" class="btn btn-ghost btn-sm">⬇ ${doc.formato||'VER'}</a>
+          </div>`).join('') : `<div style="text-align:center;padding:20px;color:var(--text3);">No se encontraron documentos o la respuesta tiene formato diferente.<br><br>
+          <a href="https://plataformaelectoral.jne.gob.pe/expedientes/detalle/detalle-expediente" target="_blank" class="btn btn-ghost btn-sm">🔗 Abrir en plataforma</a></div>`}
+      </div>`;
+  } catch(err) {
+    document.getElementById('modal-exp-body').innerHTML = `<div style="color:var(--red);padding:20px;">Error: ${err.message}<br><br>
+      <a href="https://plataformaelectoral.jne.gob.pe/expedientes/detalle/detalle-expediente" target="_blank" class="btn btn-ghost btn-sm">🔗 Abrir en plataforma JNE</a></div>`;
+  }
+}
+
+async function openDocModal(codExpedienteExt, tipo) {
+  // Navigate to detail and get docs
+  await showExpDetalle(codExpedienteExt);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI ANALYSIS
+// ═══════════════════════════════════════════════════════════════
+let iaQueue = [];
+
+async function analyzeActa(idExpediente, codExpedienteExt) {
+  const cfg = await getConfig();
+  if (!cfg.apiKey) {
+    toast('⚠ Configura tu API Key de Anthropic en Configuración', 'error');
+    nav('config');
+    return;
+  }
+
+  const modal = document.getElementById('modal-ia');
+  document.getElementById('modal-ia-title').textContent = `Análisis IA — ${codExpedienteExt}`;
+  document.getElementById('modal-ia-body').innerHTML = '<div style="text-align:center;padding:30px;">⏳ Obteniendo documentos del expediente...</div>';
+  modal.classList.add('open');
+  
+  try {
+    const detail = await getExpedienteDetail(codExpedienteExt);
+    const docs = extractDocs(detail);
+    
+    const actaPloma = docs.filter(d => d.tipo?.toLowerCase().includes('ploma'));
+    const actaCeleste = docs.filter(d => d.tipo?.toLowerCase().includes('celeste'));
+    const tipoError = docs.find(d => d.tipo?.toLowerCase().includes('error') || d.tipo?.toLowerCase().includes('reporte'));
+    
+    const plomaPrevHTML = actaPloma.map(d=>`
+      <div style="text-align:center;">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">${d.tipo}</div>
+        <img src="${d.url}" class="ia-img-preview" onerror="this.style.display='none'" loading="lazy">
+        <a href="${d.url}" target="_blank" style="font-size:10px;color:var(--blue);">🔗 Abrir en nueva pestaña</a>
+      </div>`).join('');
+    const celestePrevHTML = actaCeleste.map(d=>`
+      <div style="text-align:center;">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">${d.tipo}</div>
+        <img src="${d.url}" class="ia-img-preview" onerror="this.style.display='none'" loading="lazy">
+        <a href="${d.url}" target="_blank" style="font-size:10px;color:var(--blue);">🔗 Abrir en nueva pestaña</a>
+      </div>`).join('');
+
+    document.getElementById('modal-ia-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="ia-card">
+          <div style="font-size:12px;font-weight:700;margin-bottom:10px;">📄 ACTA PLOMA</div>
+          ${plomaPrevHTML || '<div style="color:var(--text3);font-size:12px;">No disponible</div>'}
+        </div>
+        <div class="ia-card">
+          <div style="font-size:12px;font-weight:700;margin-bottom:10px;">📄 ACTA CELESTE</div>
+          ${celestePrevHTML || '<div style="color:var(--text3);font-size:12px;">No disponible</div>'}
+        </div>
+      </div>
+      <div id="ia-analysis-result">
+        <button class="btn btn-primary" onclick="runIAAnalysis(${idExpediente}, '${codExpedienteExt}', ${JSON.stringify(docs).replace(/'/g,"&#39;")})">🤖 Ejecutar Análisis IA</button>
+      </div>`;
+  } catch(err) {
+    document.getElementById('modal-ia-body').innerHTML = `<div style="color:var(--red);">Error cargando documentos: ${err.message}</div>`;
+  }
+}
+
+function extractDocs(detail) {
+  const arr = detail?.data || detail?.actuados || detail || [];
+  const docsArr = Array.isArray(arr) ? arr : [];
+  return docsArr.map(d => ({
+    tipo: d.tipoActuado || d.tipoDocumento || '',
+    codigo: d.codDocumento || '',
+    url: d.rutaArchivo ? `${FILE_BASE}${d.rutaArchivo}` : '',
+    formato: d.formato || ''
+  })).filter(d => d.url);
+}
+
+async function runIAAnalysis(idExpediente, codExpedienteExt, docs) {
+  const resultDiv = document.getElementById('ia-analysis-result');
+  resultDiv.innerHTML = '<div style="text-align:center;padding:20px;">🤖 Analizando actas con Claude...</div>';
+  
+  const cfg = await getConfig();
+  const plomaDocs = docs.filter(d => d.tipo?.toLowerCase().includes('ploma'));
+  const celesteDocs = docs.filter(d => d.tipo?.toLowerCase().includes('celeste'));
+  const tipoErrorDoc = docs.find(d => d.tipo?.toLowerCase().includes('error') || d.tipo?.toLowerCase().includes('reporte'));
+
+  // Build image content for Claude
+  const imageContent = [];
+  [...plomaDocs, ...celesteDocs].slice(0,4).forEach(doc => {
+    if (doc.url) {
+      imageContent.push({type:'text', text:`Documento: ${doc.tipo} (${doc.codigo})`});
+      imageContent.push({type:'image', source:{type:'url', url:doc.url}});
+    }
+  });
+  
+  if (!imageContent.length) {
+    resultDiv.innerHTML = '<div style="color:var(--amber);">⚠ No se encontraron imágenes de actas para analizar.</div>';
+    return;
+  }
+
+  const prompt = `Eres un experto auditor electoral peruano especializado en Elecciones Generales 2026. Analiza las siguientes imágenes de actas electorales (Ploma y/o Celeste) del expediente ${codExpedienteExt} y determina:
+
+1. TIPO_OBSERVACION: Clasifica según Res. 180-2025-JNE: ["acta_sin_firmas", "acta_con_ilegibilidad", "acta_sin_datos", "acta_incompleta", "acta_con_error_aritmetico", "acta_con_voto_impugnado", "acta_con_solicitud_de_nulidad", "acta_normal"]
+2. DESCRIPCION: Descripción precisa del problema encontrado (máximo 3 oraciones)
+3. SECCION_AFECTADA: Qué sección presenta el problema ["instalacion", "sufragio", "escrutinio", "multiple", "ninguna"]
+4. GRAVEDAD: ["leve", "moderada", "grave"]
+5. RESOLUCION_PROBABLE: Qué resolución es probable basándose en la Res. 180-2025-JNE ["valida_con_cotejo", "necesita_recuento", "probable_nulidad", "valida_sin_observacion"]
+6. FIRMAS_PRESENTES: Número de firmas de miembros de mesa visibles (0-3)
+7. DATOS_COMPLETOS: ¿El acta tiene todos los casilleros de votos completos? (true/false)
+8. OBSERVACIONES: Otras observaciones relevantes
+9. CONFIANZA: Tu nivel de confianza en el análisis del 0 al 100
+
+Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': cfg.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: cfg.model || 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [...imageContent, {type:'text', text:prompt}]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    
+    const text = data.content[0]?.text || '';
+    let analysis;
+    try { analysis = JSON.parse(text.replace(/```json|```/g,'').trim()); }
+    catch(e) { analysis = {DESCRIPCION: text, TIPO_OBSERVACION:'no_determinado', GRAVEDAD:'desconocida'}; }
+    
+    // Save to DB
+    await dbPut('analyses', {
+      idExpediente, codExpedienteExt,
+      analysis, timestamp: Date.now(),
+      model: cfg.model || 'claude-sonnet-4-20250514'
+    });
+
+    // Render result
+    const gravedadChip = analysis.GRAVEDAD === 'grave' ? 'chip-grave' : analysis.GRAVEDAD === 'moderada' ? 'chip-moderada' : 'chip-leve';
+    resultDiv.innerHTML = `
+      <div class="ia-result">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--green);">✅ Análisis Completado</div>
+          <span style="font-size:10px;color:var(--text3);">Confianza: ${analysis.CONFIANZA||'N/A'}%</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="ia-result-field"><div class="ia-result-label">Tipo de Observación</div>
+            <div class="ia-result-value" style="font-family:var(--mono);color:var(--amber);">${(analysis.TIPO_OBSERVACION||'').replace(/_/g,' ').toUpperCase()}</div></div>
+          <div class="ia-result-field"><div class="ia-result-label">Gravedad</div>
+            <div class="ia-result-value"><span class="ia-result-value tag-chip ${gravedadChip}">${(analysis.GRAVEDAD||'').toUpperCase()}</span></div></div>
+          <div class="ia-result-field"><div class="ia-result-label">Sección Afectada</div>
+            <div class="ia-result-value">${(analysis.SECCION_AFECTADA||'-').replace(/_/g,' ').toUpperCase()}</div></div>
+          <div class="ia-result-field"><div class="ia-result-label">Resolución Probable</div>
+            <div class="ia-result-value" style="color:var(--blue);">${(analysis.RESOLUCION_PROBABLE||'-').replace(/_/g,' ').toUpperCase()}</div></div>
+          <div class="ia-result-field"><div class="ia-result-label">Firmas Presentes</div>
+            <div class="ia-result-value" style="font-family:var(--mono);">${analysis.FIRMAS_PRESENTES ?? '-'} / 3</div></div>
+          <div class="ia-result-field"><div class="ia-result-label">Datos Completos</div>
+            <div class="ia-result-value">${analysis.DATOS_COMPLETOS ? '✅ Sí' : '❌ No'}</div></div>
+        </div>
+        <div class="ia-result-field" style="margin-top:12px;"><div class="ia-result-label">Descripción</div>
+          <div class="ia-result-value">${analysis.DESCRIPCION||'-'}</div></div>
+        ${analysis.OBSERVACIONES ? `<div class="ia-result-field"><div class="ia-result-label">Observaciones Adicionales</div>
+          <div class="ia-result-value" style="color:var(--text2);">${analysis.OBSERVACIONES}</div></div>` : ''}
+      </div>`;
+
+  } catch(err) {
+    resultDiv.innerHTML = `<div style="color:var(--red);">❌ Error en análisis IA: ${err.message}<br><div style="font-size:11px;margin-top:8px;">Verifica tu API Key en Configuración.</div></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOG PAGE
+// ═══════════════════════════════════════════════════════════════
+async function renderLogPage() {
+  const logs = (await dbGetAll('logs')).sort((a,b)=>b.id-a.id);
+  setBadge('badge-log', logs.length);
+  
+  const tl = document.getElementById('log-timeline');
+  if (!logs.length) {
+    tl.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px;">Sin registros de cambios.</div>';
+    return;
+  }
+  
+  tl.innerHTML = logs.map((log, i) => {
+    const color = log.type === 'update' ? 'green' : log.type === 'error' ? 'red' : 'blue';
+    const ts = new Date(log.id).toLocaleString('es-PE');
+    const c = log.changes || {};
+    return `
+      <div class="log-entry">
+        <div class="log-dot-wrap">
+          <div class="log-dot ${color}"></div>
+          ${i < logs.length-1 ? '<div class="log-line"></div>' : ''}
+        </div>
+        <div class="log-body">
+          <div class="log-ts">${ts}</div>
+          <div class="log-title">${log.title}</div>
+          <div class="log-detail">${log.detail}</div>
+          ${log.type === 'update' && c.hasChanges ? `
+          <div class="log-diff">
+            ${c.nuevos > 0 ? `<div class="log-diff-item"><div class="ldi-label">Nuevos Expedientes</div><div class="ldi-val up">+${c.nuevos}</div></div>` : ''}
+            ${c.pronunciados > 0 ? `<div class="log-diff-item"><div class="ldi-label">Pronunciamientos ▲</div><div class="ldi-val up">+${c.pronunciados}</div></div>` : ''}
+            ${c.pronunciados < 0 ? `<div class="log-diff-item"><div class="ldi-label">Pronunciamientos</div><div class="ldi-val down">${c.pronunciados}</div></div>` : ''}
+            <div class="log-diff-item"><div class="ldi-label">Total Actas</div><div class="ldi-val">${(c.totalNew||0).toLocaleString()}</div></div>
+            <div class="log-diff-item"><div class="ldi-label">Total Pron.</div><div class="ldi-val up">${(c.totalPron||0).toLocaleString()}</div></div>
+            <div class="log-diff-item"><div class="ldi-label">Sin Procesar</div><div class="ldi-val ${c.sinProcesar > 100 ? 'down' : 'up'}">${(c.sinProcesar||0).toLocaleString()}</div></div>
+          </div>
+          ${c.details?.length ? `<details style="margin-top:8px;"><summary style="font-size:11px;color:var(--text3);cursor:pointer;">${c.details.length} cambios individuales</summary>
+            <div style="margin-top:8px;max-height:160px;overflow-y:auto;display:grid;gap:4px;">
+              ${c.details.map(d=>`<div style="font-size:11px;background:var(--bg3);padding:4px 8px;border-radius:4px;">
+                <span style="font-family:var(--mono);color:var(--green);">${d.exp}</span> · <span style="color:var(--text3);">${d.jee}</span>
+                ${d.type==='estado' ? ` · <span style="color:var(--amber);">${d.from}→${d.to}</span>` : ' · NUEVO'}
+              </div>`).join('')}
+            </div></details>` : ''}` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function exportLog() {
+  const logs = await dbGetAll('logs');
+  const rows = [['Timestamp','Tipo','Titulo','Detalle','Nuevos','Pronunciamientos','Total']];
+  logs.forEach(l => {
+    const c = l.changes || {};
+    rows.push([new Date(l.id).toLocaleString('es-PE'), l.type, l.title, l.detail, c.nuevos||0, c.pronunciados||0, c.totalNew||0]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Log');
+  XLSX.writeFile(wb, `SIAC_Log_${Date.now()}.xlsx`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPARE SNAPSHOTS
+// ═══════════════════════════════════════════════════════════════
+async function loadSnapshots() {
+  const snaps = (await dbGetAll('snapshots')).sort((a,b)=>b.timestamp-a.timestamp);
+  const selA = document.getElementById('cmp-snap-a');
+  const selB = document.getElementById('cmp-snap-b');
+  selA.innerHTML = snaps.map((s,i)=>`<option value="${s.id}">${s.label} (${s.total} actas)</option>`).join('');
+  selB.innerHTML = snaps.map((s,i)=>`<option value="${s.id}" ${i===1?'selected':''}>${s.label} (${s.total} actas)</option>`).join('');
+  setBadge && null;
+  document.getElementById('cfg-snap-count').textContent = snaps.length;
+}
+
+async function runCompare() {
+  const idA = document.getElementById('cmp-snap-a').value;
+  const idB = document.getElementById('cmp-snap-b').value;
+  if (!idA || !idB || idA === idB) { toast('Selecciona dos cortes distintos','error'); return; }
+  
+  const snaps = await dbGetAll('snapshots');
+  const A = snaps.find(s=>String(s.id)===idA);
+  const B = snaps.find(s=>String(s.id)===idB);
+  if (!A || !B) return;
+
+  const result = document.getElementById('compare-result');
+  
+  const kpiDiff = (label, va, vb, inverse=false) => {
+    const diff = va - vb;
+    const cl = diff === 0 ? '' : (inverse ? (diff<0?'up':'down') : (diff>0?'up':'down'));
+    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:10px;color:var(--text3);">${label}</div>
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);">${va.toLocaleString()}</div>
+      ${diff !== 0 ? `<div style="font-size:11px;" class="kpi-delta ${cl}">${diff>0?'▲':'▼'}${Math.abs(diff)}</div>` : '<div style="font-size:11px;color:var(--text3);">Sin cambios</div>'}
+    </div>`;
+  };
+
+  const byJEEdiff = A.byJEE.map(jeeA => {
+    const jeeB = B.byJEE.find(j=>j.jee===jeeA.jee) || {pronunciadas:0,procesadas:0,total:0};
+    const diffPron = jeeA.pronunciadas - jeeB.pronunciadas;
+    const diffProc = jeeA.procesadas - jeeB.procesadas;
+    return {...jeeA, diffPron, diffProc};
+  }).filter(j=>j.diffPron!==0||j.diffProc!==0).sort((a,b)=>b.diffPron-a.diffPron);
+
+  result.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:12px;color:var(--text2);">
+        <div>📅 Corte A: <strong style="color:var(--amber);">${A.label}</strong></div>
+        <div>📅 Corte B: <strong style="color:var(--blue);">${B.label}</strong></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        ${kpiDiff('Total Actas', A.total, B.total)}
+        ${kpiDiff('Actas Procesadas', A.procesadas, B.procesadas)}
+        ${kpiDiff('Pronunciamientos', A.pronunciadas, B.pronunciadas)}
+        ${kpiDiff('Recuento', A.recuento, B.recuento)}
+      </div>
+    </div>
+    ${byJEEdiff.length ? `
+    <div class="tbl-wrap">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">Cambios por JEE</div>
+      <table>
+        <thead><tr><th>JEE</th><th>Pronunciamientos (A)</th><th>Cambio Pron.</th><th>Procesadas (A)</th><th>Cambio Proc.</th></tr></thead>
+        <tbody>
+          ${byJEEdiff.map(j=>`<tr>
+            <td style="font-weight:600;">${j.jee}</td>
+            <td style="font-family:var(--mono);">${j.pronunciadas}</td>
+            <td style="font-family:var(--mono);color:${j.diffPron>0?'var(--green)':j.diffPron<0?'var(--red)':'var(--text3)'};">${j.diffPron>0?'+':''}${j.diffPron}</td>
+            <td style="font-family:var(--mono);">${j.procesadas}</td>
+            <td style="font-family:var(--mono);color:${j.diffProc>0?'var(--green)':j.diffProc<0?'var(--red)':'var(--text3)'};">${j.diffProc>0?'+':''}${j.diffProc}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '<div style="text-align:center;color:var(--text3);padding:20px;">Sin diferencias por JEE entre los cortes seleccionados.</div>'}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════════════════════════════
+async function exportExcel() {
+  const exps = filteredExps.length > 0 ? filteredExps : await dbGetAll('expedientes');
+  if (!exps.length) { toast('Sin datos para exportar', 'error'); return; }
+  
+  const rows = [['N°','Expediente','Código Interno','JEE','Departamento','Provincia','Distrito','Tipo Elección','Estado','Fecha Registro']];
+  exps.forEach((e,i) => {
+    rows.push([i+1, e.codExpedienteExt, e.codExpediente, e.juradoElectoral, e.departamento, e.provincia, e.distrito, e.tipoEleccion, e.estadoNorm||e.estadoExped, e.feRegistro]);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:5},{wch:18},{wch:30},{wch:16},{wch:14},{wch:14},{wch:20},{wch:14},{wch:22},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Expedientes');
+  
+  // Add summary sheet
+  const snap = await getLatestSnapshot();
+  if (snap?.byJEE) {
+    const rows2 = [['JEE','Total Recibidas','Procesadas','% Procesadas','Pronunciamientos','% Pronunciamientos','Recuento']];
+    snap.byJEE.forEach(j => {
+      rows2.push([j.jee, j.total, j.procesadas, `${((j.procesadas/j.total)*100).toFixed(1)}%`, j.pronunciadas, `${((j.pronunciadas/j.total)*100).toFixed(1)}%`, j.recuento]);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(rows2);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Resumen por JEE');
+  }
+  
+  XLSX.writeFile(wb, `SIAC_Actas_Observadas_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('✅ Excel exportado', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+async function loadConfig() {
+  const cfg = await getConfig();
+  document.getElementById('cfg-apikey').value = cfg.apiKey || '';
+  document.getElementById('cfg-model').value = cfg.model || 'claude-sonnet-4-20250514';
+  document.getElementById('cfg-interval').value = cfg.interval || '0';
+  document.getElementById('cfg-pagesize').value = cfg.pageSize || 200;
+  document.getElementById('cfg-jees-filter').value = cfg.jeesFilter || '';
+  
+  // DB stats
+  const expCount = await dbCount('expedientes');
+  const iaCount = await dbCount('analyses');
+  const snapCount = await dbCount('snapshots');
+  document.getElementById('cfg-db-count').textContent = expCount.toLocaleString();
+  document.getElementById('cfg-ia-count').textContent = iaCount.toLocaleString();
+  document.getElementById('cfg-snap-count').textContent = snapCount;
+  
+  // Setup auto-sync
+  if (cfg.interval && parseInt(cfg.interval) > 0) setupAutoSync(parseInt(cfg.interval));
+}
+
+async function saveConfig() {
+  const cfg = {
+    key: 'main',
+    apiKey: document.getElementById('cfg-apikey').value,
+    model: document.getElementById('cfg-model').value,
+    interval: document.getElementById('cfg-interval').value,
+    pageSize: document.getElementById('cfg-pagesize').value,
+    jeesFilter: document.getElementById('cfg-jees-filter').value
+  };
+  await dbPut('config', cfg);
+  const interval = parseInt(cfg.interval);
+  if (interval > 0) setupAutoSync(interval); else clearAutoSync();
+}
+
+async function getConfig() {
+  const cfg = await dbGet('config', 'main');
+  return cfg || {};
+}
+
+function setupAutoSync(seconds) {
+  clearAutoSync();
+  syncInterval = setInterval(() => syncData(true), seconds * 1000);
+}
+
+function clearAutoSync() {
+  if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
+}
+
+async function clearDB() {
+  if (!confirm('⚠ ¿Confirmas que deseas eliminar TODOS los datos locales? Esta acción no se puede deshacer.')) return;
+  await Promise.all(['expedientes','docs','analyses','snapshots','logs','config'].map(s=>dbClear(s)));
+  toast('🗑 Base de datos limpiada', 'info');
+  await loadConfig();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-nav-item').forEach(n=>n.classList.remove('active'));
+  
+  const el = document.getElementById(`page-${page}`);
+  if (el) el.classList.add('active');
+  
+  document.querySelectorAll('.sb-nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes(`'${page}'`)) n.classList.add('active');
+  });
+  
+  const titles = {
+    dashboard:'Dashboard','expedientes':'Bandeja de Expedientes',ia:'Análisis IA',
+    log:'Log de Cambios',compare:'Comparar Cortes',config:'Configuración'
+  };
+  const subs = {
+    dashboard:'Vista general del procesamiento de actas observadas',
+    expedientes:'Listado completo con filtros y acceso a documentos',
+    ia:'Análisis automático de imágenes de actas con Claude AI',
+    log:'Registro incremental de cambios por sincronización',
+    compare:'Comparación entre cortes de datos',
+    config:'Configuración del sistema'
+  };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  document.getElementById('page-sub').textContent = subs[page] || '';
+  
+  if (page === 'expedientes') renderExpTable();
+  if (page === 'log') renderLogPage();
+  if (page === 'compare') loadSnapshots();
+  if (page === 'config') loadConfig();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg, type='info', duration=4000) {
+  const t = document.getElementById('toast');
+  const item = document.createElement('div');
+  item.className = `toast-item ${type}`;
+  item.innerHTML = msg;
+  t.appendChild(item);
+  setTimeout(()=>item.remove(), duration);
+}
+
+function setBadge(id, count) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = count > 999 ? '999+' : count;
+}
+
+function setLoadingText(text) {
+  const el = document.getElementById('loading-text');
+  if (el) el.textContent = text;
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// Close modals on background click
+document.querySelectorAll('.modal-bg').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// DIAGNÓSTICO DE CONEXIÓN
+// ═══════════════════════════════════════════════════════════════
+async function runDiagnostic() {
+  const el = document.getElementById('diag-results');
+  if (!el) return;
+
+  const addResult = (label, status, detail) => {
+    const color = status === 'ok' ? 'var(--green)' : status === 'error' ? 'var(--red)' : 'var(--amber)';
+    const icon = status === 'ok' ? '✅' : status === 'error' ? '❌' : '⏳';
+    el.innerHTML += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+      <div><div style="font-size:12px;font-weight:600;">${icon} ${label}</div>
+      <div style="font-size:11px;color:var(--text3);">${detail}</div></div>
+    </div>`;
+  };
+
+  el.innerHTML = '';
+  addResult('Iniciando diagnóstico...', 'pending', 'Probando conectividad');
+
+  // Test 1: internet básico
+  el.innerHTML = '';
+  try {
+    await fetchWithTimeout('https://www.google.com', {}, 5000);
+    addResult('Internet', 'ok', 'Conexión a internet funcionando');
+  } catch(e) {
+    addResult('Internet', 'error', 'Sin conexión a internet: ' + e.message);
+    return;
+  }
+
+  // Test 2: plataforma JNE (página web)
+  try {
+    await fetchWithTimeout('https://plataformaelectoral.jne.gob.pe', {}, 8000);
+    addResult('Plataforma JNE (web)', 'ok', 'plataformaelectoral.jne.gob.pe accesible');
+  } catch(e) {
+    addResult('Plataforma JNE (web)', 'error', 'No se puede acceder al portal JNE: ' + e.message);
+  }
+
+  // Test 3: API JNE servidores
+  const body = JSON.stringify({idProcesoElectoral:124,idTipoExpediente:3,idMateria:16,
+    idJuradoElectoral:0,idOrganizacionPolitica:0,ubigeo:'',numeroDNI:'',asunto:'',pageIndex:1,pageSize:1});
+  let apiWorking = false;
+  for (const s of API_SERVERS) {
+    try {
+      const r = await fetchWithTimeout(`${s}/expediente/avanzada`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body}, 10000);
+      if (r.ok) {
+        const d = await r.json();
+        const total = d.data?.[0]?.totalRows;
+        addResult('API JNE — ' + s.split('electoral')[1].split('.')[0], 'ok',
+          `✅ Responde correctamente. ${total ? total.toLocaleString() + ' actas encontradas' : 'OK'}`);
+        API_BASE = s;
+        apiWorking = true;
+        break;
+      }
+    } catch(e) {
+      addResult('API JNE — ' + s.split('electoral')[1].split('.')[0], 'error', e.message);
+    }
+  }
+
+  if (apiWorking) {
+    el.innerHTML += `<div style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:12px 14px;text-align:center;">
+      <div style="font-size:13px;font-weight:700;color:var(--green);">✅ API encontrada. Haz click en Actualizar Datos.</div>
+    </div>`;
+    setTimeout(() => { location.reload(); }, 2000);
+  } else {
+    el.innerHTML += `<div style="background:var(--red-dim);border:1px solid var(--red);border-radius:6px;padding:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px;">No se puede conectar al API del JNE</div>
+      <div style="font-size:12px;color:var(--text2);">Posibles causas:</div>
+      <ul style="font-size:12px;color:var(--text2);margin:8px 0 0 16px;line-height:1.8;">
+        <li>Firewall corporativo o antivirus bloqueando la conexión</li>
+        <li>Red con proxy que necesita configuración</li>
+        <li>API del JNE temporalmente fuera de servicio</li>
+      </ul>
+      <div style="margin-top:12px;font-size:12px;">
+        Prueba abrir esto en Chrome: 
+        <a href="https://plataformaelectoral.jne.gob.pe" target="_blank" style="color:var(--blue);">plataformaelectoral.jne.gob.pe</a>
+      </div>
+    </div>`;
+  }
+}
+
+async function init() {
+  setLoadingText('Iniciando base de datos local...');
+  await initDB();
+  
+  setLoadingText('Cargando configuración...');
+  await loadConfig();
+  
+  // Check if we have data
+  const count = await dbCount('expedientes');
+  
+  if (count > 0) {
+    setLoadingText(`Cargando ${count} expedientes desde caché...`);
+    await renderDashboard();
+    await renderLogPage();
+    setBadge('badge-exp', count);
+    document.getElementById('loading-overlay').style.display = 'none';
+    
+    // Check last sync time
+    const snap = await getLatestSnapshot();
+    if (snap) {
+      const ts = new Date(snap.timestamp).toLocaleString('es-PE');
+      document.getElementById('last-sync-label').textContent = `Ult. sync: ${ts}`;
+    }
+    toast(`✅ ${count.toLocaleString()} expedientes cargados desde caché`, 'success');
+  } else {
+    setLoadingText('Primera ejecución — Probando conexión con el JNE...');
+    document.getElementById('loading-log').textContent = 'Buscando servidor activo...';
+    try {
+      await detectActiveServer();
+      document.getElementById('loading-log').textContent = 'Descargando datos... esto toma 1-2 minutos.';
+      await syncData();
+    } catch(err) {
+      document.getElementById('loading-overlay').style.display = 'none';
+      document.getElementById('last-sync-label').textContent = 'Error — ver diagnóstico';
+      // Mostrar panel de error con diagnóstico
+      document.querySelector('.content').innerHTML = `
+        <div style="max-width:600px;margin:40px auto;">
+          <div style="background:var(--bg2);border:1px solid var(--red);border-radius:12px;padding:28px;">
+            <div style="font-size:16px;font-weight:700;color:var(--red);margin-bottom:8px;">❌ Error de Conexión</div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">${err.message}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">Diagnóstico</div>
+            <div id="diag-results" style="display:grid;gap:8px;margin-bottom:20px;"></div>
+            <button class="btn btn-primary" onclick="runDiagnostic()" style="width:100%;justify-content:center;">
+              🔍 Ejecutar Diagnóstico
+            </button>
+            <div style="margin-top:12px;text-align:center;">
+              <button class="btn btn-ghost btn-sm" onclick="location.reload()">🔄 Reintentar</button>
+            </div>
+          </div>
+        </div>`;
+      await runDiagnostic();
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
